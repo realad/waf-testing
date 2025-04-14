@@ -16,4 +16,4 @@ jobs:
       working-directory: tools/smoke-test
       run: |
         chmod +x ./waf-smoke-test.sh
-        ./waf-smoke-test.sh "${{ env.URL }}" -o report.md
+        ./waf-smoke-test.sh "${{ secrets.WAF_TEST_URL }}" -o report.md
