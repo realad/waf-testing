@@ -16,7 +16,7 @@
 #     ./waf-smoke-test.sh "https://example.com" -o results.md -H "User-Agent: Custom"
 
 # Check dependencies
-for cmd in curl bc sed grep; do
+for cmd in curl awk sed grep; do
   if ! command -v "$cmd" &>/dev/null; then
     echo "Error: $cmd is required but not installed."
     exit 1
@@ -42,6 +42,20 @@ urlencode() {
     encoded+="$o"
   done
   echo "$encoded"
+}
+
+# Calculate percentage function
+calc_percentage() {
+    local numerator=$1
+    local denominator=$2
+    local decimals=${3:-1}
+    
+    if (( denominator == 0 )); then
+        echo "0.0"
+        return
+    fi
+    
+    awk -v num="$numerator" -v den="$denominator" -v dec="$decimals" 'BEGIN {printf "%.*f", dec, (num/den)*100}'
 }
 
 # Check URL parameter
@@ -216,7 +230,7 @@ for ((idx=0; idx<${#PAYLOADS[@]}; idx++)); do
     elif [[ "$RESPONSE" =~ ^5 ]]; then
         STATUS="${YELLOW}Error${NC}"
         STATUS_TEXT="Error"
-    else
+    else:
         STATUS="${YELLOW}Check${NC}"
         STATUS_TEXT="Check"
     fi
@@ -252,17 +266,24 @@ TOTAL=${#PAYLOADS[@]}
 echo
 printf "%s\n" "$(printf '%0.s-' $(seq 1 90))"
 printf "\n📊 ${BLUE}Summary${NC}:\n"
-printf "  ${GREEN}Blocked${NC}: %d/%d (%.1f%%)\n" "$BLOCKED" "$TOTAL" "$(echo "scale=1; 100*$BLOCKED/$TOTAL" | bc)"
-printf "  ${RED}Allowed${NC}: %d/%d (%.1f%%)\n" "$ALLOWED" "$TOTAL" "$(echo "scale=1; 100*$ALLOWED/$TOTAL" | bc)"
+
+# Calculate percentages
+BLOCKED_PCT=$(calc_percentage $BLOCKED $TOTAL)
+ALLOWED_PCT=$(calc_percentage $ALLOWED $TOTAL)
+ERROR_PCT=$(calc_percentage $ERROR $TOTAL)
+CHECK_PCT=$(calc_percentage $CHECK $TOTAL)
+
+printf "  ${GREEN}Blocked${NC}: %d/%d (%.1f%%)\n" "$BLOCKED" "$TOTAL" "$BLOCKED_PCT"
+printf "  ${RED}Allowed${NC}: %d/%d (%.1f%%)\n" "$ALLOWED" "$TOTAL" "$ALLOWED_PCT"
 if [ $ERROR -gt 0 ]; then
-  printf "  ${YELLOW}Error${NC}: %d/%d (%.1f%%)\n" "$ERROR" "$TOTAL" "$(echo "scale=1; 100*$ERROR/$TOTAL" | bc)"
+  printf "  ${YELLOW}Error${NC}: %d/%d (%.1f%%)\n" "$ERROR" "$TOTAL" "$ERROR_PCT"
 fi
 if [ $CHECK -gt 0 ]; then
-  printf "  ${YELLOW}Check${NC}: %d/%d (%.1f%%)\n" "$CHECK" "$TOTAL" "$(echo "scale=1; 100*$CHECK/$TOTAL" | bc)"
+  printf "  ${YELLOW}Check${NC}: %d/%d (%.1f%%)\n" "$CHECK" "$TOTAL" "$CHECK_PCT"
 fi
 
 # Calculate security score
-SCORE=$(echo "scale=0; 100 * $BLOCKED / $TOTAL" | bc)
+SCORE=$(calc_percentage $BLOCKED $TOTAL 0)
 printf "\n🔒 ${BLUE}WAF Security Score${NC}: ${YELLOW}%d%%${NC}\n" "$SCORE"
 
 # Protection rating
@@ -337,13 +358,13 @@ if [ -n "$OUTPUT_FILE" ]; then
   
   echo "## Summary" >> "$OUTPUT_FILE"
   echo "- Total Tests: $TOTAL" >> "$OUTPUT_FILE"
-  echo "- Blocked: $BLOCKED ($(echo "scale=1; 100*$BLOCKED/$TOTAL" | bc)%)" >> "$OUTPUT_FILE"
-  echo "- Allowed: $ALLOWED ($(echo "scale=1; 100*$ALLOWED/$TOTAL" | bc)%)" >> "$OUTPUT_FILE"
+  echo "- Blocked: $BLOCKED (${BLOCKED_PCT}%)" >> "$OUTPUT_FILE"
+  echo "- Allowed: $ALLOWED (${ALLOWED_PCT}%)" >> "$OUTPUT_FILE"
   if [ $ERROR -gt 0 ]; then
-    echo "- Error: $ERROR ($(echo "scale=1; 100*$ERROR/$TOTAL" | bc)%)" >> "$OUTPUT_FILE"
+    echo "- Error: $ERROR (${ERROR_PCT}%)" >> "$OUTPUT_FILE"
   fi
   if [ $CHECK -gt 0 ]; then
-    echo "- Check: $CHECK ($(echo "scale=1; 100*$CHECK/$TOTAL" | bc)%)" >> "$OUTPUT_FILE"
+    echo "- Check: $CHECK (${CHECK_PCT}%)" >> "$OUTPUT_FILE"
   fi
   echo "- Security Score: $SCORE%" >> "$OUTPUT_FILE"
   echo "" >> "$OUTPUT_FILE"
