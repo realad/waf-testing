@@ -1,0 +1,62 @@
+name: WAF Smoke Test (Cross-Platform)
+
+on:
+  schedule:
+    - cron: '0 0 * * 1'  # Weekly on Mondays
+  workflow_dispatch:     # Manual trigger
+
+jobs:
+  waf-smoke-test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    
+    # Setup for Windows
+    - name: Install dependencies on Windows
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        # Install required tools using Chocolatey
+        choco install curl grep sed -y
+        
+        # Install gawk
+        choco install gawk -y
+        
+        # Add to PATH if needed
+        echo "C:\Program Files\Git\usr\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        
+        # Verify installations
+        Write-Host "Checking installed dependencies:"
+        curl --version
+        grep --version
+        sed --version
+        gawk --version
+    
+    # Run on Ubuntu (bash)
+    - name: Run WAF test on Ubuntu
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        chmod +x ./tools/smoke-test/waf-smoke-test.sh
+        ./tools/smoke-test/waf-smoke-test.sh "${{ secrets.WAF_TEST_URL }}"
+    
+    # Run on macOS (bash)
+    - name: Run WAF test on macOS
+      if: runner.os == 'macOS'
+      shell: bash
+      run: |
+        chmod +x ./tools/smoke-test/waf-smoke-test.sh
+        ./tools/smoke-test/waf-smoke-test.sh "${{ secrets.WAF_TEST_URL }}"
+    
+    # Run on Windows (Git Bash)
+    - name: Run WAF test on Windows
+      if: runner.os == 'Windows'
+      shell: bash
+      run: |
+        chmod +x ./tools/smoke-test/waf-smoke-test.sh
+        bash ./tools/smoke-test/waf-smoke-test.sh "${{ secrets.WAF_TEST_URL }}"
