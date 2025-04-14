@@ -1,4 +1,4 @@
-name: WAF Smoke Test
+name: WAF Smoke Test (Cross-Platform)
 
 on:
   schedule:
@@ -6,14 +6,36 @@ on:
   workflow_dispatch:     # Manual trigger
 
 jobs:
-  test:
+  waf-smoke-test:
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-    - name: Run WAF test
+    
+    # Run on Ubuntu (bash)
+    - name: Run WAF test on Ubuntu
+      if: runner.os == 'Linux'
+      shell: bash
       run: |
-        ./tools/smoke-test/waf-smoke-test.sh "${{ vars.WAF_TEST_URL }}"
+        chmod +x ./tools/smoke-test/waf-smoke-test.sh
+        ./tools/smoke-test/waf-smoke-test.sh "${{ secrets.WAF_TEST_URL }}"
+    
+    # Run on macOS (bash)
+    - name: Run WAF test on macOS
+      if: runner.os == 'macOS'
+      shell: bash
+      run: |
+        chmod +x ./tools/smoke-test/waf-smoke-test.sh
+        ./tools/smoke-test/waf-smoke-test.sh "${{ secrets.WAF_TEST_URL }}"
+    
+    # Run on Windows (Git Bash)
+    - name: Run WAF test on Windows
+      if: runner.os == 'Windows'
+      shell: bash
+      run: |
+        chmod +x ./tools/smoke-test/waf-smoke-test.sh
+        bash ./tools/smoke-test/waf-smoke-test.sh "${{ secrets.WAF_TEST_URL }}"
