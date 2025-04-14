@@ -11,8 +11,6 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
-    env:
-      URL: https://example.com
     steps:
     - name: Checkout
       uses: actions/checkout@v4
