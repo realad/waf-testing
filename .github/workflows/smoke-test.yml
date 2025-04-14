@@ -11,7 +11,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        repository: git@github.com:realad/waf-testing.git
+        repository: realad/waf-testing
     - name: Run WAF test
       working-directory: tools/smoke-test
       run: |
