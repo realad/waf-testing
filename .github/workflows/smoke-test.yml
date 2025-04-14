@@ -1,0 +1,21 @@
+name: WAF Smoke Test
+
+on:
+  schedule:
+    - cron: '0 0 * * 1'  # Weekly on Mondays
+  workflow_dispatch:     # Manual trigger
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      URL: https://example.com
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Run WAF test
+      run: |
+        ./tools/smoke-test/waf-smoke-test.sh "${{ vars.WAF_TEST_URL }}"
