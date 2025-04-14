@@ -16,6 +16,14 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
     
+    # Setup for Windows using pacman (Git Bash)
+    - name: Install dependencies on Windows
+      if: runner.os == 'Windows'
+      shell: bash
+      run: |
+        # Install required tools using pacman (available in Git Bash)
+        pacman -S --noconfirm curl grep sed bc
+    
     # Run on Ubuntu (bash)
     - name: Run WAF test on Ubuntu
       if: runner.os == 'Linux'
